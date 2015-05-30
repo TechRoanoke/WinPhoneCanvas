@@ -1,0 +1,121 @@
+﻿<phone:PhoneApplicationPage 
+    x:Class="mapapp.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:mapapp"
+    mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="768"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    shell:SystemTray.IsVisible="True" 
+    xmlns:my="clr-namespace:Microsoft.Phone.Controls.Maps;assembly=Microsoft.Phone.Controls.Maps" 
+    BackKeyPress="PhoneApplicationPage_BackKeyPress">
+
+    <phone:PhoneApplicationPage.Resources>
+        <local:BoolVizConverter x:Key="BoolVizFormat" />
+    </phone:PhoneApplicationPage.Resources>
+    <!--LayoutRoot is the root grid where all page content is placed-->
+    <Grid x:Name="LayoutRoot" Background="Transparent" Loaded="LayoutRoot_Loaded">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!--TitlePanel contains the name of the application and page title-->
+        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="0">
+            <TextBlock x:Name="ApplicationTitle" Text="voter map" Style="{StaticResource PhoneTextNormalStyle}" Margin="4,0" />
+        </StackPanel>
+
+        <!--ContentPanel - place additional content here-->
+        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0">
+            <my:Map Name="Map" CredentialsProvider="{Binding CredentialsProvider}"
+                CopyrightVisibility="Collapsed"
+                LogoVisibility="Collapsed"
+                ZoomLevel="{Binding Zoom, Mode=TwoWay}"
+                Center="{Binding Center, Mode=TwoWay}">
+
+                <my:MapLayer Visibility="{Binding ShowPushpins, Converter={StaticResource BoolVizFormat}}" >
+                    <my:MapItemsControl  ItemsSource="{Binding Pushpins}">
+                    <my:MapItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <my:Pushpin BorderBrush="Black"
+                                            BorderThickness="3"
+                                            FontWeight="Bold"
+                                            Background="{Binding Background}" 
+                                            Foreground="{Binding Foreground}" 
+                                            Visibility="{Binding Visibility}" 
+                                            Location="{Binding Location}" 
+                                            Content="{Binding Content}" AllowDrop="False" FontFamily="Courier New" Margin="1" Padding="1" OpacityMask="Black" Hold="Pushpin_Hold" />
+                        </DataTemplate>
+                    </my:MapItemsControl.ItemTemplate>
+                </my:MapItemsControl>
+                </my:MapLayer>
+                <my:MapLayer Visibility="{Binding ShowPrecincts, Converter={StaticResource BoolVizFormat}}" >
+                    <my:MapItemsControl  ItemsSource="{Binding Precincts}">
+                        <my:MapItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <my:Pushpin BorderBrush="Green"
+                                            BorderThickness="3"
+                                            FontWeight="Normal"
+                                            Background="Green" 
+                                            Foreground="White" 
+                                            Visibility="{Binding Visibility}" 
+                                            Location="{Binding Center}" 
+                                            Content="{Binding Content}" AllowDrop="False" FontFamily="Courier New" Margin="1" Padding="1" OpacityMask="Black" Hold="Precinct_Hold" />
+                            </DataTemplate>
+                        </my:MapItemsControl.ItemTemplate>
+                    </my:MapItemsControl>
+                </my:MapLayer>
+                <my:MapLayer Visibility="{Binding ShowStreets, Converter={StaticResource BoolVizFormat}}" >
+                    <my:MapItemsControl  ItemsSource="{Binding Streets}">
+                        <my:MapItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <my:Pushpin BorderBrush="OliveDrab"
+                                            BorderThickness="3"
+                                            FontWeight="Normal"
+                                            Background="OliveDrab" 
+                                            Foreground="White" 
+                                            Visibility="{Binding Visibility}" 
+                                            Location="{Binding Center}" 
+                                            Content="{Binding Content}" AllowDrop="False" FontFamily="Courier New" Margin="1" Padding="1" OpacityMask="Black" Hold="Street_Hold" />
+                            </DataTemplate>
+                        </my:MapItemsControl.ItemTemplate>
+                    </my:MapItemsControl>
+                </my:MapLayer>
+                <my:MapLayer Name="layerMe" Visibility="{Binding ShowMe, Converter={StaticResource BoolVizFormat}}" >
+                    <my:Pushpin Name="mePin" BorderBrush="Red" Content="Me" Location="{Binding CurrentLocation}"
+                                    BorderThickness="3" FontWeight="Bold" AllowDrop="False" 
+                                    FontFamily="Courier New" Margin="1" Padding="1" OpacityMask="Black" Background="White" Foreground="Black" />
+                    <my:Pushpin Name="carPin" BorderBrush="Red" Content="Car" Location="{Binding Car.Location}"
+                                    BorderThickness="3" FontWeight="Bold" AllowDrop="False" Visibility="{Binding ShowCar, Converter={StaticResource BoolVizFormat}}"
+                                    FontFamily="Courier New" Margin="1" Padding="1" OpacityMask="Black" Background="Yellow" Foreground="Black" />
+                </my:MapLayer>
+
+                <my:Map.Mode>
+                    <my:RoadMode />
+                </my:Map.Mode>
+            </my:Map>
+        </Grid>
+    </Grid>
+ 
+    <!--Sample code showing usage of ApplicationBar-->
+<!-- Moved Appbar construction to codebehind in Constructor so that we can force it back into place frequently
+   <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True">
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.location.png" Text="Find Me" Click="Center_Click"/>
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.satlayer.png" Text="Street/Sat" Click="ChangeMapMode"/>
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.minus.png" Text="Pushpins" Click="OnTogglePushpinViewMode"/>
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.menu.png" Text="Streets..." Click="ListStreets"/>
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem Text="Toggle Aerial / Street view" Click="ChangeMapMode"/>
+                <shell:ApplicationBarMenuItem Text="Zoom Out" Click="ZoomOut"/>
+            </shell:ApplicationBar.MenuItems>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+-->
+</phone:PhoneApplicationPage>

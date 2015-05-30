@@ -1,0 +1,82 @@
+﻿<phone:PhoneApplicationPage 
+    x:Class="mapapp.HouseListPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:mapapp"
+    xmlns:telerikDataControls="clr-namespace:Telerik.Windows.Controls;assembly=Telerik.Windows.Controls.Data" 
+
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="Portrait" Orientation="Portrait"
+    mc:Ignorable="d" d:DesignHeight="696" d:DesignWidth="480"
+    shell:SystemTray.IsVisible="True" >
+    <phone:PhoneApplicationPage.Resources>
+        <local:BoolOpaqueConverter x:Key="IsUpdatedConverter" />
+        <local:PartyBackgroundBrushConverter x:Key="PartyBgBrushConverter" />
+        <local:PartyForegroundBrushConverter x:Key="PartyFgBrushConverter" />
+    </phone:PhoneApplicationPage.Resources>
+
+    <!--LayoutRoot-->
+    <Grid x:Name="LayoutRoot" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="94"/>
+            <RowDefinition Height="602*"/>
+        </Grid.RowDefinitions>
+
+        <!--TitlePanel-->
+        <StackPanel x:Name="TitlePanel" Margin="12,17,0,0">
+            <TextBlock x:Name="ApplicationTitle" Text="VOTER MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="PageTitle" Text="Voter List" Margin="9,-15,0,0" Style="{StaticResource PhoneTextExtraLargeStyle}"/>
+        </StackPanel>
+
+        <!--ContentPanel-->
+        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="6,0">
+            <telerikDataControls:RadJumpList Height="596" HorizontalAlignment="Left" Name="lstVoters" 
+                     VerticalAlignment="Top" Width="468" ItemsSource="{Binding VoterList, Mode=TwoWay}" 
+                                             GroupPickerItemsSource="{Binding StreetList}" Margin="0" ItemTap="lstVoters_ItemTap">
+                <telerikDataControls:RadJumpList.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderThickness="0,1" BorderBrush="{StaticResource PhoneBorderBrush}" Opacity="{Binding VoterFile.IsUpdated, Converter={StaticResource IsUpdatedConverter}}">
+                        <StackPanel x:Name="pnlVoterRecord" Height="Auto" HorizontalAlignment="Left" Margin="10,2" VerticalAlignment="Top" Width="Auto">
+                            
+                            <StackPanel Height="Auto" Name="pnlNameParty" Width="440" Orientation="Horizontal" 
+                                        Background="{Binding VoterFile.Party, Converter={StaticResource PartyBgBrushConverter}}">
+                                <TextBlock Height="Auto" Foreground="{Binding VoterFile.Party, Converter={StaticResource PartyFgBrushConverter}}" 
+                                           Name="txtVoterName" Text="{Binding VoterFile.FullName}" Width="380" Padding="10,2" FontSize="{StaticResource PhoneFontSizeMedium}" />
+                                <TextBlock Height="Auto" Foreground="{Binding VoterFile.Party, Converter={StaticResource PartyFgBrushConverter}}" 
+                                           Name="txtPrimary" Width="60" Text="{Binding VoterFile.PrimaryVoteHistory}" FontSize="{StaticResource PhoneFontSizeMedium}" />
+                            </StackPanel>
+                            <StackPanel Height="Auto" Name="pnlStreetHistory" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="Auto" Name="txtAddress" Text="{Binding VoterFile.Address}" Width="380" Padding="10,2" FontSize="{StaticResource PhoneFontSizeMedium}" />
+                                    <TextBlock Height="Auto" Name="txtGeneral" Width="60" Text="{Binding VoterFile.GeneralVoteHistory}" FontSize="{StaticResource PhoneFontSizeMedium}" />
+                            </StackPanel>
+                            <StackPanel Height="Auto" Name="pnlCityPrecinct" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="28" Name="txtCity" Text="{Binding VoterFile.City}" Width="227" Padding="10,2" />
+                                <TextBlock Height="28" Name="txtPrecinct" Text="{Binding VoterFile.Precinct}" Width="212" Padding="10,2" />
+                            </StackPanel>
+                            <StackPanel Height="Auto" Name="pnlPhone" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="28" Name="txtPhone" Text="{Binding VoterFile.PhoneFormatted}" Width="227" Padding="10,2" />
+                                <TextBlock Height="28" Name="txtSomething" Text="" Width="212" Padding="10,2" />
+                            </StackPanel>
+                        </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </telerikDataControls:RadJumpList.ItemTemplate>
+            </telerikDataControls:RadJumpList>
+        </Grid>
+    </Grid>
+ 
+    <phone:PhoneApplicationPage.ApplicationBar>
+        <shell:ApplicationBar IsVisible="True" IsMenuEnabled="True">
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.sortup.png" Text="sort up" Click="ApplicationBarIconButtonSortUp_Click"/>
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.sortdown.png" Text="sort down" Click="ApplicationBarIconButtonSortDown_Click"/>
+            <shell:ApplicationBarIconButton IconUri="/Images/appbar.oddeven.png" Text="odd/even" Click="ApplicationBarIconButtonSortOddEven_Click"/>
+        </shell:ApplicationBar>
+    </phone:PhoneApplicationPage.ApplicationBar>
+
+</phone:PhoneApplicationPage>
