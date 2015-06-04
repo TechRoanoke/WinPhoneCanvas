@@ -45,8 +45,8 @@ namespace mapapp
         DateTime  defaultDbDate   = new DateTime(2012, 1, 1);
         DateTime  defaultUpdate   = new DateTime(2012, 1, 1);
         const int       defaultCount    = 0;
-        const string    defaultUpload   = "me/skydrive";
-        const string    defaultFormat   = "xml";
+        const string    defaultUpload   = "http://supershare1.azurewebsites.net/sheets/0";
+        const string    defaultFormat   = "csv";
 
         const bool      defaultDownload = false;
         const string    defaultUserId   = "";

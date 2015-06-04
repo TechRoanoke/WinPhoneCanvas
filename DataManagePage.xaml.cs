@@ -35,7 +35,7 @@ namespace mapapp
         private Mutex _voterFileMutex = new Mutex(false, "VoterFileMutex");
         private bool _dataLoaded = false;
         private bool _dataRequested = false;
-        private string _baseDataUrl = "http://supershare1.azurewebsites.net/sheets/0";
+        // private string _baseDataUrl = "http://supershare1.azurewebsites.net/sheets/0";
         private string _baseLoginUrl = "http://supershare1.azurewebsites.net/login/code?code=";
 
         public DataManagementPage()
@@ -132,7 +132,7 @@ namespace mapapp
                 {
                     try
                     {
-                        Uri voterListUri = new Uri(_baseDataUrl);
+                        Uri voterListUri = new Uri(App.thisApp._settings.UploadUrl);
                         WebClient webClient = new WebClient();
                         webClient.Headers[HttpRequestHeader.Authorization] = "bearer " + App.thisApp._settings.GetSetting<string>("authkey");
                         webClient.DownloadStringCompleted += new DownloadStringCompletedEventHandler(webClient_DownloadVoterListCompleted);
@@ -195,6 +195,7 @@ namespace mapapp
                             authKey = authResult.AuthToken;
                             App.thisApp._settings.UpdateSetting("authkey", authResult.AuthToken);
                             App.thisApp._settings.UpdateSetting("userid", txt_CampaignID.Text);
+                            App.thisApp._settings.UploadUrl = authResult.Server + "/sheets/0";
                         }
                     }
                 }
@@ -205,7 +206,7 @@ namespace mapapp
                 {
                     try
                     {
-                        Uri voterListUri = new Uri(_baseDataUrl);
+                        Uri voterListUri = new Uri(App.thisApp._settings.UploadUrl);
                         WebClient webClient = new WebClient();
                         webClient.Headers[HttpRequestHeader.Authorization] = "bearer " + App.thisApp._settings.GetSetting<string>("authkey");
                         webClient.DownloadStringCompleted += new DownloadStringCompletedEventHandler(webClient_DownloadVoterListCompleted);
@@ -302,7 +303,7 @@ namespace mapapp
                         WebClient client = sender as WebClient;
                         // TODO: Do some work to validate that this is a valid voter data file
 
-                        App.thisApp._settings.UploadUrl = _baseDataUrl;
+                        // App.thisApp._settings.UploadUrl = _baseDataUrl;
                         App.thisApp._settings.LastUpdated = client.ResponseHeaders["Date"];
                     }
                     progBar.Value = progBar.Maximum;
