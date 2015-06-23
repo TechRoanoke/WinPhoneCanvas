@@ -9,6 +9,7 @@ namespace mapapp
     public enum DbState
     {
         Unknown = -1,
+        Invalid,
         Empty,
         Loading,
         Updating,

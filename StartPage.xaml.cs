@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Microsoft.Phone.Controls;
+using mapapp.data;
 
 namespace mapapp
 {
@@ -21,8 +22,7 @@ namespace mapapp
             if (App.thisApp._settings.DbStatus == DbState.Loaded)
             {
                 btnMap.IsEnabled = true;
-                // btnFilter.IsEnabled = true;
-                // btnStats.IsEnabled = true;
+                btnList.IsEnabled = true;
             }
             App.thisApp._settings.PropertyChanged += new System.ComponentModel.PropertyChangedEventHandler(_settings_PropertyChanged);
         }
@@ -34,8 +34,12 @@ namespace mapapp
                 if (App.thisApp._settings.DbStatus == DbState.Loaded)
                 {
                     btnMap.IsEnabled = true;
-                    // btnFilter.IsEnabled = true;
-                    // btnStats.IsEnabled = true;
+                    btnList.IsEnabled = true;
+                }
+                else
+                {
+                    btnMap.IsEnabled = false;
+                    btnList.IsEnabled = false;
                 }
             }
         }
@@ -48,6 +52,19 @@ namespace mapapp
         private void btnDataMgmt_Click(object sender, RoutedEventArgs e)
         {
             this.NavigationService.Navigate(new Uri("/DataManagePage.xaml", UriKind.Relative));
+        }
+
+        private void btnList_Click(object sender, RoutedEventArgs e)
+        {
+            if (App.VotersViewModel.VoterList == null || App.VotersViewModel.VoterList.Count == 0)
+            {
+                App.VotersViewModel.FillVoterList(null);
+                if (App.VotersViewModel.VoterList.Count() <= 0)
+                {
+                    btnList.IsEnabled = false;
+                }
+            }
+            this.NavigationService.Navigate(new Uri("/HouseListPage.xaml", UriKind.Relative));
         }
     }
 }

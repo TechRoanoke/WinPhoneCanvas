@@ -14,7 +14,7 @@
     Foreground="{StaticResource PhoneForegroundBrush}"
     SupportedOrientations="Portrait" Orientation="Portrait"
     mc:Ignorable="d" d:DesignHeight="768" d:DesignWidth="480"
-    shell:SystemTray.IsVisible="True" Loaded="PhoneApplicationPage_Loaded">
+    shell:SystemTray.IsVisible="True" Loaded="PhoneApplicationPage_Loaded" BackKeyPress="PhoneApplicationPage_BackKeyPress">
 
     <phone:PhoneApplicationPage.Resources>
         <local:ResultListConverter x:Key="ResultListConverter" />
@@ -32,87 +32,96 @@
 
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel" Margin="12,17,0,0">
-            <TextBlock x:Name="ApplicationTitle" Text="VOTER MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="ApplicationTitle" Text="CANVASS MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
             <TextBlock x:Name="PageTitle" Text="voter details" Margin="9,-30,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="pnlVoterDetails" Grid.Row="1" Margin="6,0">
-            <ScrollViewer>
+            <!-- ScrollViewer -->
             <StackPanel VerticalAlignment="Top">
                 <StackPanel x:Name="pnlVoterRecord" Height="Auto" HorizontalAlignment="Left" Margin="10,2" VerticalAlignment="Top" Width="Auto">
-                    <StackPanel Height="Auto" Name="pnlNameParty" Width="440" Orientation="Horizontal" 
-                                        Background="{Binding Party, Converter={StaticResource PartyBgBrushConverter}}">
-                        <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}" Height="Auto" Foreground="{Binding Party, Converter={StaticResource PartyFgBrushConverter}}" 
-                                           Name="txtVoterName" Text="{Binding FullName}" Width="380" Padding="10,2" />
-                        <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}" Height="Auto" Foreground="{Binding Party, Converter={StaticResource PartyFgBrushConverter}}" 
-                                           Name="txtPrimary" Width="60" Text="{Binding PrimaryVoteHistory}" />
-                    </StackPanel>
-                    <StackPanel Height="Auto" Name="pnlStreetHistory" Width="440" Orientation="Horizontal">
-                        <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}"  Height="Auto" Name="txtAddress" Text="{Binding Address}" Width="380" Padding="10,2" />
-                        <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}"  Height="Auto" Name="txtGeneral" Width="60" Text="{Binding GeneralVoteHistory}" />
-                    </StackPanel>
-                    <StackPanel Height="Auto" Name="pnlCityPrecinct" Width="440" Orientation="Horizontal">
-                        <TextBlock Height="28" Name="txtCity" Text="{Binding City}" Width="227" Padding="10,2" />
-                        <TextBlock Height="28" Name="txtPrecinct" Text="{Binding Precinct}" Width="212" Padding="10,2" />
-                    </StackPanel>
-                    <StackPanel Height="Auto" Name="pnlPhone" Width="440" Orientation="Horizontal">
-                        <TextBlock Height="28" Name="txtPhone" Text="{Binding PhoneFormatted}" Width="227" Padding="10,2" />
-                        <TextBlock Height="28" Name="txtSomething" Text="" Width="212" Padding="10,2" />
-                    </StackPanel>
-                    <StackPanel Height="86" Name="pnlEmail" Width="440" Orientation="Horizontal">
-                        <TextBlock Height="40" Name="lblEmail" Text="email" Width="81" Padding="10,2" />
-                        <TextBox Height="70" InputScope="EmailNameOrAddress" Name="txtEmail" Text="{Binding Email, Mode=TwoWay}" Width="352" Padding="2,2" BorderThickness="2,0" />
-                    </StackPanel>
-                    <StackPanel Height="76" Name="pnlParty" Width="440" Orientation="Horizontal">
-                        <TextBlock Height="35" Name="lblParty" Text="party" Width="81" Padding="10,2" VerticalAlignment="Center" />
-                        <telerikInput:RadListPicker Height="300" Name="partyList" Width="325" 
-                                                    InlineModeThreshold="10" SelectedIndex="{Binding Party, Mode=TwoWay, Converter={StaticResource PartyListConverter}}" SizeChanged="partyList_SizeChanged" VerticalContentAlignment="Top">
-                            <TextBlock Text="unidentified" Foreground="Black" />
-                            <TextBlock Text="strong republican" Foreground="Red" />
-                            <TextBlock Text="leans republican" Foreground="HotPink" />
-                            <TextBlock Text="independent" Foreground="DarkViolet" />
-                            <TextBlock Text="leans democrat" Foreground="DodgerBlue" />
-                            <TextBlock Text="strong democrat" Foreground="Blue" />
-                            <TextBlock Text="refused" Foreground="DarkBlue" />
-                        </telerikInput:RadListPicker>
-                    </StackPanel>
-                    <StackPanel Height="76" Name="pnlContact" Width="440" Orientation="Horizontal">
-                        <TextBlock Height="35" Name="lblResult" Text="result" Width="81" Padding="10,2" VerticalAlignment="Center" />
-                        <telerikInput:RadListPicker Height="300" Name="resultList" Width="325" 
-                                                    InlineModeThreshold="20" SelectedIndex="{Binding ResultOfContact, Mode=TwoWay, Converter={StaticResource ResultListConverter}}" VerticalContentAlignment="Top" SizeChanged="resultList_SizeChanged">
-                            <TextBlock Text="no contact" />
-                            <TextBlock Text="no answer" />
-                            <TextBlock Text="non-voter answered" />
-                            <TextBlock Text="left literature" />
-                            <TextBlock Text="talked with voter" />
-                            <TextBlock Text="voter has moved" />
-                            <TextBlock Text="address vacant" />
-                            <TextBlock Text="couldn't find address" />
-                            <TextBlock Text="deceased" />
-                            <TextBlock Text="refused to identify" />
-                        </telerikInput:RadListPicker>
-                    </StackPanel>
-                    <StackPanel>
-                        <CheckBox Content="Will support candidate" IsChecked="{Binding IsSupporter, Mode=TwoWay}" />
-                        <CheckBox Content="Willing to help" IsChecked="{Binding IsVolunteer, Mode=TwoWay}" Visibility="Collapsed" />
-                        <StackPanel Height="86" Name="pnlCellPhone" Width="440" Orientation="Horizontal">
-                            <TextBlock Height="40" Name="lblCell" Text="mobile" Width="81" Padding="10,2" />
-                            <TextBox Height="70" InputScope="TelephoneNumber" Name="txtCell" Text="{Binding CellPhone, Mode=TwoWay}" Width="352" />
-                            <!-- TextBox Height="70" Name="txtModified" Text="{Binding ModifiedTime, Mode=TwoWay}" Width="352" Visibility="Collapsed" /-->
+                    <StackPanel x:Name="pnlVoterStatic" DoubleTap="pnlVoterStatic_DoubleTap">
+                        <StackPanel Height="Auto" Name="pnlNameParty" Width="440" Orientation="Horizontal" 
+                                            Background="{Binding Party, Converter={StaticResource PartyBgBrushConverter}}">
+                            <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}" Height="Auto" Foreground="{Binding Party, Converter={StaticResource PartyFgBrushConverter}}" 
+                                               Name="txtVoterName" Text="{Binding FullName}" Width="380" Padding="10,2" />
+                            <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}" Height="Auto" Foreground="{Binding Party, Converter={StaticResource PartyFgBrushConverter}}" 
+                                               Name="txtPrimary" Width="60" Padding="10,2"  Text="{Binding PrimaryVoteHistory}" />
                         </StackPanel>
-                        <StackPanel Height="210" Name="pnlNotes" Width="440" Orientation="Horizontal">
-                            <TextBlock Height="40" Name="lblNotes" Text="notes" Width="81" Padding="10,2" VerticalAlignment="Top" Margin="0,20,0,0" />
-                            <TextBox Height="210"  Name="txtComments" Text="{Binding Comment, Mode=TwoWay}" Width="352" InputScope="Text" TextWrapping="Wrap"/>
+                        <StackPanel Height="Auto" Name="pnlStreetHistory" Width="440" Orientation="Horizontal">
+                            <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}"  Height="Auto" Name="txtAddress" Text="{Binding Address}" Width="380" Padding="10,2" />
+                            <TextBlock FontSize="{StaticResource PhoneFontSizeMedium}"  Height="Auto" Name="txtGeneral" Width="60" Padding="10,2" Text="{Binding GeneralVoteHistory}" />
+                        </StackPanel>
+                        <StackPanel Visibility="Collapsed" Height="Auto" Name="pnlCityPrecinct" Width="440" Orientation="Horizontal">
+                            <TextBlock Height="28" Name="txtCity" Text="{Binding City}" Width="227" Padding="10,2" />
+                            <TextBlock Height="28" Name="txtPrecinct" Text="{Binding Precinct}" Width="212" Padding="10,2" />
+                        </StackPanel>
+                        <StackPanel Visibility="Collapsed" Height="Auto" Name="pnlPhone" Width="440" Orientation="Horizontal">
+                            <TextBlock Height="28" Name="txtPhone" Text="{Binding PhoneFormatted}" Width="227" Padding="10,2" />
+                            <TextBlock Height="28" Name="txtSomething" Text="" Width="212" Padding="10,2" />
                         </StackPanel>
                     </StackPanel>
+                    <ScrollViewer>
+                        <StackPanel>
+                            <StackPanel Height="70" Name="pnlEmail" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="40" Name="lblEmail" Text="email" Width="81" Padding="10,2" />
+                                <TextBox InputScope="EmailNameOrAddress" Name="txtEmail" Text="{Binding Email, Mode=TwoWay}" Width="348" Padding="2,2" BorderThickness="2,0" />
+                            </StackPanel>
+                            <StackPanel Height="65" Name="pnlParty" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="35" Name="lblParty" Text="party" Width="81" Padding="10,2" VerticalAlignment="Center" />
+                                <telerikInput:RadListPicker Height="300" Name="partyList" Width="325" 
+                                                    InlineModeThreshold="10" SelectedIndex="{Binding Party, Mode=TwoWay, Converter={StaticResource PartyListConverter}}" SizeChanged="partyList_SizeChanged" VerticalContentAlignment="Top" Margin="12,0">
+                                    <TextBlock Text="unidentified" Foreground="Black" />
+                                    <TextBlock Text="strong republican" Foreground="Red" />
+                                    <TextBlock Text="leans republican" Foreground="HotPink" />
+                                    <TextBlock Text="independent" Foreground="DarkViolet" />
+                                    <TextBlock Text="leans democrat" Foreground="DodgerBlue" />
+                                    <TextBlock Text="strong democrat" Foreground="Blue" />
+                                    <TextBlock Text="refused" Foreground="DarkBlue" />
+                                </telerikInput:RadListPicker>
+                            </StackPanel>
+                            <StackPanel Height="65" Name="pnlContact" Width="440" Orientation="Horizontal">
+                                <TextBlock Height="35" Name="lblResult" Text="result" Width="81" Padding="10,2" VerticalAlignment="Center" />
+                                <telerikInput:RadListPicker Height="300" x:Name="resultList" Width="325" 
+                                                    InlineModeThreshold="20" SelectedIndex="{Binding ResultOfContact, Converter={StaticResource ResultListConverter}, Mode=TwoWay}" VerticalContentAlignment="Top" SizeChanged="resultList_SizeChanged" Margin="12,0,12,-224">
+                                    <TextBlock Text="no contact" />
+                                    <TextBlock Text="no answer" />
+                                    <TextBlock Text="non-voter answered" />
+                                    <TextBlock Text="left literature" />
+                                    <TextBlock Text="talked with voter" />
+                                    <TextBlock Text="voter has moved" />
+                                    <TextBlock Text="address vacant" />
+                                    <TextBlock Text="couldn't find address" />
+                                    <TextBlock Text="deceased" />
+                                    <TextBlock Text="refused to identify" />
+                                </telerikInput:RadListPicker>
+                            </StackPanel>
+                            <StackPanel>
+                                <CheckBox Content="Will support candidate" IsChecked="{Binding IsSupporter, Mode=TwoWay}" VerticalAlignment="Top" />
+                                <CheckBox Content="Willing to help" IsChecked="{Binding IsVolunteer, Mode=TwoWay}" Visibility="Collapsed" />
+                                <StackPanel Height="70" Name="pnlCellPhone" Width="440" Orientation="Horizontal">
+                                    <TextBlock Height="40" Name="lblCell" Text="mobile" Width="81" Padding="10,2" />
+                                    <TextBox InputScope="TelephoneNumber" Name="txtCell" Text="{Binding CellPhone, Mode=TwoWay}" Width="352" />
+                                    <!-- TextBox Height="70" Name="txtModified" Text="{Binding ModifiedTime, Mode=TwoWay}" Width="352" Visibility="Collapsed" /-->
+                                </StackPanel>
+                                <StackPanel Height="200" Name="pnlNotes" Width="440" Orientation="Horizontal">
+                                    <TextBlock Height="40" Name="lblNotes" Text="notes" Width="81" Padding="10,2" VerticalAlignment="Top" Margin="0,20,0,0" />
+                                    <TextBox  Name="txtComments" Text="{Binding Comments, Mode=TwoWay}" Width="352" InputScope="Text" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                </StackPanel>
+                                <StackPanel x:Name="pnlCustom">
+                                    <!-- This is where custom fields are added at runtime -->
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
                 </StackPanel>
             </StackPanel>
-            </ScrollViewer>
+            <!-- /ScrollViewer -->
         </Grid>
     </Grid>
- 
-<!--
+
+    <!--
     <phone:PhoneApplicationPage.ApplicationBar>
         <shell:ApplicationBar IsVisible="True" IsMenuEnabled="False">
             <shell:ApplicationBarIconButton IconUri="/Images/appbar.save.rest.png" Text="Save" Click="saveButton_Click" />

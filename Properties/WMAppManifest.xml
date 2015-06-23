@@ -4,7 +4,7 @@
   <Languages xmlns="">
     <Language code="en-US" />
   </Languages>
-  <App xmlns="" ProductID="{3ce76a50-6c46-4442-b5c3-7dcd263221ad}" Title="Voter Map" RuntimeType="Silverlight" Version="0.7.3.3" Genre="apps.normal" Author="Jim Thatcher" Description="Political campaign voter contacting/canvassing app. Maps show where your voters are located. Lists of voters sorted by street allow easy door-to-door contact record keeping." Publisher="JETware" PublisherID="{4d17dc0d-4312-48cb-9371-c5c46fd72625}">
+  <App xmlns="" ProductID="{3ce76a50-6c46-4442-b5c3-7dcd263221ad}" Title="Canvass Map" RuntimeType="Silverlight" Version="0.8.0.1" Genre="apps.normal" Author="Jim Thatcher" Description="Political campaign voter contacting/canvassing app. Maps show where your voters are located. Lists of voters sorted by street allow easy door-to-door contact record keeping." Publisher="Jim Thatcher/Tech Roanoke" PublisherID="{4d17dc0d-4312-48cb-9371-c5c46fd72625}">
     <IconPath IsRelative="true" IsResource="false">ApplicationIcon.png</IconPath>
     <Capabilities>
       <Capability Name="ID_CAP_LOCATION" />
@@ -20,7 +20,7 @@
           <SmallImageURI IsResource="false" IsRelative="true">Background.png</SmallImageURI>
           <Count>0</Count>
           <BackgroundImageURI IsResource="false" IsRelative="true">Background.png</BackgroundImageURI>
-          <Title>voter map</Title>
+          <Title>canvass map</Title>
           <BackContent>
           </BackContent>
           <BackBackgroundImageURI>

@@ -23,9 +23,7 @@ using System.ComponentModel;
 using System.Text;
 using System.IO.IsolatedStorage;
 using System.Windows.Resources;
-// using BingMapsRESTService.Common.JSON;
-// using System.Runtime.Serialization;
-// using System.Runtime.Serialization.Json;
+using Newtonsoft.Json;
 
 namespace mapapp
 {
@@ -55,9 +53,9 @@ namespace mapapp
             }
         }
 
-        private VoterFileEntry _selectedVoter;
+        private PushpinModel _selectedVoter;
 
-        public VoterFileEntry SelectedHouse
+        public PushpinModel SelectedHouse
         {
             get { return _selectedVoter; }
             set
@@ -82,18 +80,19 @@ namespace mapapp
                     VoterFileEntry voterToUpdate = voterQuery.FirstOrDefault();
                     if (voterToUpdate.VoterID == _selectedVoter.VoterID)
                     {
-                        voterToUpdate.Party = _selectedVoter.Party;
+                        voterToUpdate.Party = _selectedVoter.VoterFile.Party;
                         voterToUpdate.ResultOfContact = _selectedVoter.ResultOfContact;
                         voterToUpdate.Email = _selectedVoter.Email;
                         voterToUpdate.CellPhone = _selectedVoter.CellPhone;
                         voterToUpdate.IsSupporter = _selectedVoter.IsSupporter;
                         voterToUpdate.IsVolunteer = _selectedVoter.IsVolunteer;
-                        voterToUpdate.IsUpdated = _selectedVoter.IsUpdated;
+                        voterToUpdate.IsUpdated = _selectedVoter.VoterFile.IsUpdated;
                         voterToUpdate.Comments = _selectedVoter.Comments;
                         voterToUpdate.ModifiedTime = DateTime.Now;
-                        _selectedVoter.ModifiedTime = voterToUpdate.ModifiedTime;
+                        _selectedVoter.VoterFile.ModifiedTime = voterToUpdate.ModifiedTime;
                         _voterDB.SubmitChanges(System.Data.Linq.ConflictMode.ContinueOnConflict);
                         success = true;
+                        NotifyPropertyChanged("HasUpdates");
                     }
                     else
                         Log(String.Format(" ERROR: Voter returned from query (id={0}) did not match selected voter (id={1}).", voterToUpdate.VoterID, _selectedVoter.VoterID));
@@ -130,98 +129,65 @@ namespace mapapp
             return _bReturn;
         }
 
-        public string CreateUpdateFile()
+        public void PostUpdate()
         {
-            string _updatesFileName = "";
-            VoterFileDataContext _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, _settings.DbFileName));
-            if (_voterDB.DatabaseExists())
+            // TODO: Provide an option to only update if WiFi is available
+            // Microsoft.Phone.Net.NetworkInformation.DeviceNetworkInformation.IsWiFiEnabled;
+            // use DeviceNetworkInformation.NetworkAvailabilityChanged Event
+            if (App.thisApp.DbHasUpdates() && Microsoft.Phone.Net.NetworkInformation.DeviceNetworkInformation.IsNetworkAvailable)
             {
-                try
+                DateTime updateTime = DateTime.Now;
+                string updateContent = App.thisApp.GetUpdateString(updateTime);
+
+                if (updateContent.Length > 40) // This is an arbitary stab at verifying that there is something to report
                 {
-                    IEnumerable<VoterFileEntry> voters = from voter in _voterDB.AllVoters
-                                                         // where voter.IsUpdated == true
-                                                         where voter.ModifiedTime > _settings.GetSetting<DateTime>("lastsync")
-                                                         select voter;
-                    App.Log("  CreateUpdateFile Query completed. Starting write to file");
-
-                    String stDataFormat = App.thisApp._settings.GetSetting<string>("dataformat");
-                    IsolatedStorageFile _iso = IsolatedStorageFile.GetUserStoreForApplication();
-                    DateTime _now = DateTime.Now;
-                    string _dateString = string.Format("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}", _now.Year, _now.Month, _now.Day, _now.Hour, _now.Minute, _now.Second);
-                    _updatesFileName = string.Format("VoterUpdates{0}.{1}", _dateString, stDataFormat);
-                    IsolatedStorageFileStream _outputStream = _iso.CreateFile(_updatesFileName);
-                    StreamWriter _updateFileStream = new StreamWriter(_outputStream);
-
-                    if (stDataFormat == "xml")
+                    try
                     {
-                        StringBuilder xml = new StringBuilder();
-                        xml.Clear();
-                        xml.AppendLine("<VoterUpdates>");
-                        xml.AppendFormat("\t<ReportDate>{0}</ReportDate>{1}", DateTime.Now, System.Environment.NewLine);
-                        xml.AppendLine("\t<VoterList>");
-                        _updateFileStream.Write(xml.ToString());
-                        xml.Clear();
+                        Uri voterListUri = new Uri(App.thisApp._settings.UploadUrl);
 
-                        foreach (VoterFileEntry voter in voters)
-                        {
-                            // TODO: Add WriteUpdateToXml() method to VoterFileEntry object
-                            xml.AppendLine("\t\t<VoterUpdate>");
-                            xml.AppendFormat("\t\t\t<ID>{0}</ID>{1}", voter.VoterID, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Party>{0}</Party>{1}", voter.Party, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<ResultOfContact>{0}</ResultOfContact>{1}", voter.ResultOfContact, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Email>{0}</Email>{1}", voter.Email, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<CellPhone>{0}</CellPhone>{1}", voter.CellPhone, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsSupporter>{0}</IsSupporter>{1}", voter.IsSupporter, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsVolunteer>{0}</IsVolunteer>{1}", voter.IsVolunteer, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsModified>{0}</IsModified>{1}", voter.IsUpdated, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Comments>{0}</Comments>{1}", voter.Comments, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<ModifiedTime>{0}</ModifiedTime>{1}", voter.ModifiedTime, System.Environment.NewLine);
-                            xml.AppendLine("\t\t</VoterUpdate>");
-                            _updateFileStream.Write(xml.ToString());
-                            xml.Clear();
-                        }
-                        xml.AppendLine("\t</VoterList>");
-                        xml.AppendLine("</VoterUpdates>");
-                        _updateFileStream.Write(xml.ToString());
-                        _updateFileStream.Flush();
-                        _updateFileStream.Close();
-                        xml.Clear();
+                        WebClient webClient = new WebClient();
+                        webClient.Headers[HttpRequestHeader.ContentType] = "application/text";
+                        webClient.Headers[HttpRequestHeader.ContentLength] = updateContent.Length.ToString();
+                        webClient.Headers[HttpRequestHeader.Authorization] = "bearer " + App.thisApp._settings.GetSetting<string>("authkey");
+                        webClient.UploadStringCompleted += new UploadStringCompletedEventHandler(UpdatePostCompleted);
+                        App.Log("Posting update ... ");
+                        webClient.UploadStringAsync(voterListUri, "POST", updateContent, updateTime);
                     }
-                    else if (stDataFormat == "csv")
+                    catch (Exception ex)
                     {
-                        StringBuilder csv = new StringBuilder();
-                        csv.Clear();
-                        if (App.thisApp._settings.GetSetting<bool>("_trhack"))
-                            csv.AppendLine("redid,party,resultofcontact,email,cellphone,issupporter,comments,modifiedtime");
-                        else
-                            csv.AppendLine("recid,party,resultofcontact,email,cellphone,issupporter,comments,modifiedtime");
-                        _updateFileStream.Write(csv.ToString());
-                        csv.Clear();
-
-                        foreach (VoterFileEntry voter in voters)
-                        {
-                            // TODO: Add WriteUpdateToCsv() method to VoterFileEntry object
-                            csv.AppendFormat("{0},{1},{2},{3},{4},{5},{6},{7}{8}", voter.VoterID, voter.Party, voter.ResultOfContact, voter.Email, voter.CellPhone, voter.IsSupporter, voter.Comments, voter.ModifiedTime, System.Environment.NewLine);
-                            _updateFileStream.Write(csv.ToString());
-                            csv.Clear();
-                        }
-                        _updateFileStream.Flush();
-                        _updateFileStream.Close();
-                        csv.Clear();
+                        System.Diagnostics.Debug.WriteLine(ex.ToString());
                     }
-                    Log("  Completed writing update file " + _updatesFileName);
-                }
-                catch (Exception ex)
-                {
-                    Log(" Error reporting changes: " +  ex.ToString());
-                    _updatesFileName = "";
                 }
             }
-            _voterDB.Dispose();
-            return _updatesFileName;
         }
 
-        public string GetUpdateString()
+        void UpdatePostCompleted(object sender, UploadStringCompletedEventArgs e)
+        {
+            string size = "0";
+            try
+            {
+                if (sender is WebClient)
+                {
+                    WebClient wc = sender as WebClient;
+                    UpdateResult result = JsonConvert.DeserializeObject<UpdateResult>(e.Result);
+                    if (result != null && result.VersionTag.Length > 0)
+                    {
+                        DateTime updateTime = DateTime.Now;
+                        if (e.UserState.GetType() == typeof(DateTime))
+                            updateTime = (DateTime)e.UserState;
+                        App.thisApp._settings.UpdateSetting("lastsync", updateTime);
+                    }
+                }
+                App.Log(string.Format("Uploaded {0} bytes. Response is: {1}", size, e.Result));
+                NotifyPropertyChanged("HasUpdates");
+            }
+            catch (Exception ex)
+            {
+                App.Log("Problem logging results of upload: " + ex.ToString());
+            }
+        }    
+
+        public string GetUpdateString(DateTime updateTime)
         {
             string stUpdates = "";
             VoterFileDataContext _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, _settings.DbFileName));
@@ -230,55 +196,13 @@ namespace mapapp
                 try
                 {
                     IEnumerable<VoterFileEntry> voters = from voter in _voterDB.AllVoters
-                                                         // where voter.IsUpdated == true
-                                                         where voter.ModifiedTime > _settings.GetSetting<DateTime>("lastsync")
+                                                         where (voter.ModifiedTime > _settings.GetSetting<DateTime>("lastsync") &&
+                                                                voter.ModifiedTime <= updateTime && voter.IsUpdated)
                                                          select voter;
                     App.Log("  GetUpdateString Query completed.");
+                    StringWriter _updateString = new StringWriter();
 
-                    String stDataFormat = App.thisApp._settings.GetSetting<string>("dataformat");
-                    DateTime _now = DateTime.Now;
-                    string _dateString = string.Format("{0:0000}{1:00}{2:00}{3:00}{4:00}{5:00}", _now.Year, _now.Month, _now.Day, _now.Hour, _now.Minute, _now.Second);
-                    // StreamWriter _updateFileStream = new StreamWriter(_outputStream);
-
-                    StringWriter _updateFileString = new StringWriter();
-
-                    if (stDataFormat == "xml")
-                    {
-                        StringBuilder xml = new StringBuilder();
-                        xml.Clear();
-                        xml.AppendLine("<VoterUpdates>");
-                        xml.AppendFormat("\t<ReportDate>{0}</ReportDate>{1}", DateTime.Now, System.Environment.NewLine);
-                        xml.AppendLine("\t<VoterList>");
-                        _updateFileString.Write(xml.ToString());
-                        xml.Clear();
-
-                        foreach (VoterFileEntry voter in voters)
-                        {
-                            // TODO: Add WriteUpdateToXml() method to VoterFileEntry object
-                            xml.AppendLine("\t\t<VoterUpdate>");
-                            xml.AppendFormat("\t\t\t<ID>{0}</ID>{1}", voter.VoterID, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Party>{0}</Party>{1}", voter.Party, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<ResultOfContact>{0}</ResultOfContact>{1}", voter.ResultOfContact, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Email>{0}</Email>{1}", voter.Email, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<CellPhone>{0}</CellPhone>{1}", voter.CellPhone, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsSupporter>{0}</IsSupporter>{1}", voter.IsSupporter, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsVolunteer>{0}</IsVolunteer>{1}", voter.IsVolunteer, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<IsModified>{0}</IsModified>{1}", voter.IsUpdated, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<Comments>{0}</Comments>{1}", voter.Comments, System.Environment.NewLine);
-                            xml.AppendFormat("\t\t\t<ModifiedTime>{0}</ModifiedTime>{1}", voter.ModifiedTime, System.Environment.NewLine);
-                            xml.AppendLine("\t\t</VoterUpdate>");
-                            _updateFileString.Write(xml.ToString());
-                            xml.Clear();
-                        }
-                        xml.AppendLine("\t</VoterList>");
-                        xml.AppendLine("</VoterUpdates>");
-                        _updateFileString.Write(xml.ToString());
-                        _updateFileString.Flush();
-                        stUpdates = _updateFileString.ToString();
-                        _updateFileString.Close();
-                        xml.Clear();
-                    }
-                    else if (stDataFormat == "csv")
+                    if (App.thisApp._settings.GetSetting<string>("dataformat") == "csv")
                     {
                         StringBuilder csv = new StringBuilder();
                         csv.Clear();
@@ -286,19 +210,19 @@ namespace mapapp
                             csv.AppendLine("redid,party,resultofcontact,email,cellphone,issupporter,comments,modifiedtime");
                         else
                             csv.AppendLine("recid,party,resultofcontact,email,cellphone,issupporter,comments,modifiedtime");
-                        _updateFileString.Write(csv.ToString());
+                        _updateString.Write(csv.ToString());
                         csv.Clear();
 
                         foreach (VoterFileEntry voter in voters)
                         {
                             // TODO: Add WriteUpdateToCsv() method to VoterFileEntry object
                             csv.AppendFormat("{0},{1},{2},{3},{4},{5},{6},{7}{8}", voter.VoterID, voter.Party, voter.ResultOfContact, voter.Email, voter.CellPhone, voter.IsSupporter, voter.Comments, voter.ModifiedTime, System.Environment.NewLine);
-                            _updateFileString.Write(csv.ToString());
+                            _updateString.Write(csv.ToString());
                             csv.Clear();
                         }
-                        _updateFileString.Flush();
-                        stUpdates = _updateFileString.ToString();
-                        _updateFileString.Close();
+                        _updateString.Flush();
+                        stUpdates = _updateString.ToString();
+                        _updateString.Close();
                         csv.Clear();
                     }
                     Log("  Completed: Updates = " + stUpdates);
@@ -313,9 +237,9 @@ namespace mapapp
             return stUpdates;
         }
 
-        // private static VoterFileDataContext _voterDB;
-
         Thread _dbLoadThread;
+
+        private string _delayLoadDbFile = "";
         /*
         private bool _dbLoaded;
 
@@ -388,22 +312,36 @@ namespace mapapp
             thisApp = this;
             MainThread = Thread.CurrentThread;
             // Create the database if it does not exist.
-
-            // Changing from initially loading voters.xml from static resource to getting it from SkyDrive
-            // _dbLoadThread = new Thread(LoadDatabase);
-            // _dbLoadThread.Start("voters.xml");
-            if (_settings.DbStatus != DbState.Loaded)
-            {
-
-            }
+            PropertyChanged += App_PropertyChanged;
+            _delayLoadDbFile = "";
             Thread.Sleep(1500);
+        }
+
+        void App_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == "HasUpdates")
+            {
+                if (!DbHasUpdates() && _delayLoadDbFile != "")
+                {
+                    if (_dbLoadThread == null || _dbLoadThread.ThreadState == ThreadState.Stopped)
+                    {
+                        _dbLoadThread = new Thread(LoadDatabase);
+                    }
+                    if (_dbLoadThread.ThreadState != ThreadState.Unstarted)
+                    {
+                        return;
+                    }
+                    _dbLoadThread.Start(_delayLoadDbFile);
+                    _delayLoadDbFile = "";
+                }
+            }
         }
 
         public void LoadDatabaseFromFile(string fileName)
         {
             if (_settings.DbStatus == DbState.Loaded)
             {
-                // TODO: Handle other states
+                App.Log("ERROR: Trying to load data from file when database is already loaded.");
                 return;
             }
             else
@@ -416,9 +354,14 @@ namespace mapapp
                     App.VotersViewModel.NewStreetList.Clear();
                     App.VotersViewModel = null;
                 }
-                if (_dbLoadThread == null)
+                if (_dbLoadThread == null || _dbLoadThread.ThreadState == ThreadState.Stopped)
+                {
                     _dbLoadThread = new Thread(LoadDatabase);
-
+                }
+                if (_dbLoadThread.ThreadState != ThreadState.Unstarted)
+                {
+                    return;
+                }
                 _dbLoadThread.Start(fileName);
             }
         }
@@ -453,30 +396,9 @@ namespace mapapp
 
         public void LoadDatabase(Object voterFileName)
         {
-            /*
-            [XML representation]
-            <voters>
-              <voter>
-                <address>1234 Anystreet</address>
-                <address2></address2>
-                <city>Sammamish</city>
-                <state>WA</state>
-                <zip>98074</zip>
-                <phone></phone>
-                <lastname>BOND</lastname>
-                <firstname>JAMES</firstname>
-                <email></email>
-                <precinct>SAM 45-1234</precinct>
-                <party>1</party>
-                <pvscore><pri>2</pri><gen>4</gen></pvscore>
-                <recid>WA01002212345</recid>
-                <location>47.6161616,-122.0551111</location>
-              </voter>
-            </voters>
-             * 
-            or [csv representation]
-            recid,address,address2,city,state,zip,phone,lastname,firstname,HouseholdVoters,email,precinct,party,pri,gen,location,resultofcontact,cellphone,issupporter,comments,modifiedtime
-                    1234 Anystreet,,Sammamish,WA,98074,,BOND,"JAMES, GALORE",JAMES and GALORE BOND,,SAM 45-1234,1,2,4,WA01002212345,"47.6161616,-122.0551111",,,,,
+            // TODO: Update passed object to stream, rely on dataformat setting to get type of data in voter list
+            /* recid,address,address2,city,state,zip,phone,lastname,firstname,email,precinct,party,pri,gen,location,resultofcontact,cellphone,issupporter,comments,modifiedtime
+                    WA00092212345,1234 Anystreet,,Sammamish,WA,98074,,BOND,JAMES,,SAM 45-1234,1,2,4,"47.6161616,-122.0551111",,,,,
             */
             string fileName = "";
 
@@ -486,7 +408,6 @@ namespace mapapp
             }
             else
             {
-                // MessageBox("Unable to load voter data file.", "Oops!", MessageBoxButton.OK);
                 return;
             }
 
@@ -494,11 +415,7 @@ namespace mapapp
             IsolatedStorageFileStream voterFile = isf.OpenFile(fileName, FileMode.Open);
             Stream voterDataStream = voterFile;
 
-            if (fileName.EndsWith(".xml"))
-            {
-                App.thisApp._settings.UpdateSetting("dataformat", "xml");
-            }
-            else if (fileName.EndsWith(".csv"))
+            if (fileName.EndsWith(".csv"))
             {
                 App.thisApp._settings.UpdateSetting("dataformat", "csv");
             }
@@ -523,10 +440,6 @@ namespace mapapp
                     }
                     _voterFileName = Encoding.UTF8.GetString(fileNameBytes, 0, i);
                 }
-                if (_voterFileName.EndsWith(".xml"))
-                {
-                    App.thisApp._settings.UpdateSetting("dataformat", "xml");
-                }
                 StreamResourceInfo zipInfo = new StreamResourceInfo(voterFile, "application/zip");
                 StreamResourceInfo streamInfo = Application.GetResourceStream(zipInfo, new Uri(_voterFileName, UriKind.Relative));
                 if (streamInfo != null)
@@ -536,12 +449,10 @@ namespace mapapp
             int nVoters = 0;
 
             VoterFileDataContext _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, _settings.DbFileName));
-            // if (_settings.DbStatus == DbState.Loaded) NOTE: Forcing to reload during testing
-            if (false)
+            if (_settings.DbStatus == DbState.Loaded && DbHasUpdates()) 
             {
-                // TODO: prompt user to reload/overwrite database
-                // TODO: Read database status from app settings
-                // IsDbLoaded = true;               
+                PostUpdate();
+                _delayLoadDbFile = fileName; 
                 return;
             }
             else
@@ -557,7 +468,6 @@ namespace mapapp
                     }
                     else
                     {
-                        // TODO: prompt user, then Dump existing database and create a new one
                         App.Log("WARNING: Deleting existing database...");
                         _voterDB.DeleteDatabase();
                         App.Log("Creating new database...");
@@ -566,65 +476,7 @@ namespace mapapp
                         App.Log("  Database created");
                     }
 
-                    if (App.thisApp._settings.GetSetting<string>("dataformat") == "xml")
-                    {
-
-                        XDocument loadedData = null;
-
-                        loadedData = XDocument.Load(voterDataStream);
-
-                        IEnumerable<XElement> dbDate = loadedData.Descendants("timestamp");
-                        if (dbDate != null)
-                        {
-                            string dbDateString = dbDate.First<XElement>().Value;
-                            DateTime dbTimeStamp;
-                            if (DateTime.TryParse(dbDateString, out dbTimeStamp))
-                                _settings.DbDate = dbTimeStamp;
-                        }
-                        IEnumerable<XElement> votersNode = loadedData.Descendants("voters");
-                        if (votersNode != null)
-                        {
-
-                            App.Log("  XML file loaded");
-                            IEnumerable<VoterFileEntry> voters = from query in votersNode.Descendants("voter")
-                                                                 select new VoterFileEntry
-                                                                 {
-                                                                     FirstName = (string)query.Element("firstname"),
-                                                                     LastName = (string)query.Element("lastname"),
-                                                                     Address = (string)query.Element("address"),
-                                                                     Address2 = (string)query.Element("address2"),
-                                                                     City = (string)query.Element("city"),
-                                                                     State = (string)query.Element("state"),
-                                                                     Zip = (string)query.Element("zip"),
-                                                                     VoterID = (string)query.Element("recid"),
-                                                                     PartyString = (string)query.Element("party"),
-                                                                     Precinct = (string)query.Element("precinct"),
-                                                                     PrimaryVoteHistoryString = (string)query.Element("pvscore").Element("pri"),
-                                                                     GeneralVoteHistoryString = (string)query.Element("pvscore").Element("gen"),
-                                                                     Email = (string)query.Element("email"),
-                                                                     Phone = (string)query.Element("phone"),
-                                                                     Coordinates = (string)query.Element("location"),
-                                                                     ResultOfContactString = (string)query.Element("resultofcontact"),
-                                                                     CellPhone = (string)query.Element("cellphone"),
-                                                                     IsSupporterString = (string)query.Element("issupporter"),
-                                                                     IsVolunteerString = (string)query.Element("isvolunteer"),
-                                                                     Comments = (string)query.Element("comments"),
-                                                                     ModifiedTime = DateTime.Now
-                                                                 };
-                            App.Log("  Query completed");
-                            _settings.DbStatus = DbState.Loading;
-                            foreach (VoterFileEntry voter in voters)
-                            {
-                                if (0.0 == voter.Latitude || 0.0 == voter.Longitude)
-                                {
-                                    continue;
-                                }
-                                nVoters++;
-                                _voterDB.AllVoters.InsertOnSubmit(voter);
-                            }
-                        }
-                    }
-                    else if (App.thisApp._settings.GetSetting<string>("dataformat") == "csv")
+                    if (App.thisApp._settings.GetSetting<string>("dataformat") == "csv")
                     {
                         // Load voters from rows in csv text
                         StreamReader csvReader = new StreamReader(voterDataStream);
@@ -636,7 +488,7 @@ namespace mapapp
 
                         while (voterLine != null)
                         {
-                            // recid,address,address2,city,state,zip,phone,lastname,firstname,HouseholdVoters,email,precinct,party,pri,gen,location
+                            // recid,firstname,lastname,address,address2,city,state,zip,precinct,lat,long,gender,birthdate,pri,gen,phone,email,party,cellphone,comments,issupporter
                             XElement voterElement = GetVoterXmlFromCsv(headerLine, voterLine);
                             // We need at least the basics of address, city, and voterid to do anything useful with this record
                             try
@@ -745,6 +597,9 @@ namespace mapapp
                     voterFile.Dispose();
                     App.Log("  Voters submitted to database: " + nVoters.ToString());
                     _voterDB.SubmitChanges(System.Data.Linq.ConflictMode.ContinueOnConflict);
+                    isf.DeleteFile(fileName);
+                    _settings.DbStatus = DbState.Loaded;
+                    _settings.UpdateSetting("lastsync", DateTime.Now);
                     App.Log(" Loading Precincts table");
                     IEnumerable<string> precincts = (from v in _voterDB.AllVoters select v.Precinct).Distinct();
                     foreach (string precinct in precincts)
@@ -796,7 +651,6 @@ namespace mapapp
                     _voterDB.SubmitChanges(System.Data.Linq.ConflictMode.ContinueOnConflict);
 
                     App.Log("  Changes committed to database");
-                    _settings.DbStatus = DbState.Loaded;
                     _settings.UpdateSetting("lastsync", DateTime.Now);
                 }
                 catch (Exception ex)
@@ -804,8 +658,8 @@ namespace mapapp
                     App.Log("Exception loading voters to database: " + ex.ToString());
                 }
             }
+            _dbLoadThread = null;
         }
-
 
         // Code to execute when the application is launching (eg, from Start)
         // This code will not execute when the application is reactivated
@@ -908,13 +762,60 @@ namespace mapapp
         }
     }
 
-
-
     public class VoterViewModel : INotifyPropertyChanged
     {
         public VoterViewModel()
         {
             _inViewVoters = new ObservableCollection<PushpinModel>();
+        }
+
+        public void FillVoterList(List<PushpinModel> fillWith)
+        {
+            if (fillWith == null || fillWith.Count < 1)
+            {
+                VoterFileDataContext _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, App.thisApp._settings.DbFileName));
+
+                if (!(App.thisApp._settings.DbStatus == DbState.Loaded) || !_voterDB.DatabaseExists())
+                {
+                    App.Log("Database not ready to load voters yet.");
+                    return;
+                }
+                App.VotersViewModel.StreetList.Clear();
+                App.VotersViewModel.VoterList.Clear();
+
+                IEnumerable<VoterFileEntry> data = from VoterFileEntry voter in _voterDB.AllVoters select voter;
+                foreach (VoterFileEntry _v in data)
+                {
+                    PushpinModel p = new PushpinModel(_v);
+                    if ((p.Street != null) && (!App.VotersViewModel.StreetList.Contains(p.Street)))
+                    {
+                        App.VotersViewModel.StreetList.Add(p.Street);
+                    }
+                    App.VotersViewModel.VoterList.Add(p);
+                }
+                _voterDB.Dispose(); 
+            }
+            else
+            {
+                App.VotersViewModel.StreetList.Clear();
+                App.VotersViewModel.VoterList.Clear();
+
+                foreach (PushpinModel p in fillWith)
+                {
+                    if ((p.Street != null) && (!App.VotersViewModel.StreetList.Contains(p.Street)))
+                    {
+                        App.VotersViewModel.StreetList.Add(p.Street);
+                    }
+                    App.VotersViewModel.VoterList.Add(p);
+                }
+            }
+            if (App.VotersViewModel.VoterList.Count <= 0)
+            {
+                App.Log("There are no voters in database!");
+                return;
+            }
+            else
+                System.Diagnostics.Debug.WriteLine("Found {0} voters in database.", App.VotersViewModel.VoterList.Count);
         }
 
         private ObservableCollection<PushpinModel> _inViewVoters = new ObservableCollection<PushpinModel>();

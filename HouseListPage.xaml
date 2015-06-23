@@ -22,7 +22,7 @@
     </phone:PhoneApplicationPage.Resources>
 
     <!--LayoutRoot-->
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid x:Name="LayoutRoot" Background="Transparent" >
         <Grid.RowDefinitions>
             <RowDefinition Height="94"/>
             <RowDefinition Height="602*"/>
@@ -30,7 +30,7 @@
 
         <!--TitlePanel-->
         <StackPanel x:Name="TitlePanel" Margin="12,17,0,0">
-            <TextBlock x:Name="ApplicationTitle" Text="VOTER MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="ApplicationTitle" Text="CANVASS MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
             <TextBlock x:Name="PageTitle" Text="Voter List" Margin="9,-15,0,0" Style="{StaticResource PhoneTextExtraLargeStyle}"/>
         </StackPanel>
 
@@ -38,7 +38,7 @@
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="6,0">
             <telerikDataControls:RadJumpList Height="596" HorizontalAlignment="Left" Name="lstVoters" 
                      VerticalAlignment="Top" Width="468" ItemsSource="{Binding VoterList, Mode=TwoWay}" 
-                                             GroupPickerItemsSource="{Binding StreetList}" Margin="0" ItemTap="lstVoters_ItemTap">
+                                             GroupPickerItemsSource="{Binding StreetList}" Margin="0" ItemTap="lstVoters_ItemTap" Hold="lstVoters_Hold" GroupHeaderItemTap="lstVoters_GroupHeaderItemTap" GroupPickerItemTap="lstVoters_GroupPickerItemTap">
                 <telerikDataControls:RadJumpList.ItemTemplate>
                     <DataTemplate>
                         <Border BorderThickness="0,1" BorderBrush="{StaticResource PhoneBorderBrush}" Opacity="{Binding VoterFile.IsUpdated, Converter={StaticResource IsUpdatedConverter}}">
@@ -76,6 +76,9 @@
             <shell:ApplicationBarIconButton IconUri="/Images/appbar.sortup.png" Text="sort up" Click="ApplicationBarIconButtonSortUp_Click"/>
             <shell:ApplicationBarIconButton IconUri="/Images/appbar.sortdown.png" Text="sort down" Click="ApplicationBarIconButtonSortDown_Click"/>
             <shell:ApplicationBarIconButton IconUri="/Images/appbar.oddeven.png" Text="odd/even" Click="ApplicationBarIconButtonSortOddEven_Click"/>
+            <shell:ApplicationBar.MenuItems>
+                <shell:ApplicationBarMenuItem x:Name="menuitemClearFilter" Text="clear filter" Click="menuitemClearFilter_Click"/>
+            </shell:ApplicationBar.MenuItems>
         </shell:ApplicationBar>
     </phone:PhoneApplicationPage.ApplicationBar>
 

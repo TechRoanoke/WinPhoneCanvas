@@ -14,7 +14,7 @@
     SupportedOrientations="Portrait" Orientation="Portrait"
     shell:SystemTray.IsVisible="True" 
     xmlns:my="clr-namespace:Microsoft.Phone.Controls.Maps;assembly=Microsoft.Phone.Controls.Maps" 
-    BackKeyPress="PhoneApplicationPage_BackKeyPress">
+    BackKeyPress="PhoneApplicationPage_BackKeyPress" GotFocus="PhoneApplicationPage_GotFocus">
 
     <phone:PhoneApplicationPage.Resources>
         <local:BoolVizConverter x:Key="BoolVizFormat" />
@@ -28,12 +28,14 @@
 
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="0">
-            <TextBlock x:Name="ApplicationTitle" Text="voter map" Style="{StaticResource PhoneTextNormalStyle}" Margin="4,0" />
+            <TextBlock x:Name="ApplicationTitle" Text="canvass map" Style="{StaticResource PhoneTextNormalStyle}" Margin="4,0" />
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="0">
-            <my:Map Name="Map" CredentialsProvider="{Binding CredentialsProvider}"
+            <ProgressBar x:Name="waitBar" Visibility="Visible"  HorizontalAlignment="Left" Height="10" VerticalAlignment="Center" Width="480" IsIndeterminate="True" DoubleTap="waitBar_DoubleTap"/>
+
+            <my:Map Name="Map" Visibility="Collapsed"  CredentialsProvider="{Binding CredentialsProvider}"
                 CopyrightVisibility="Collapsed"
                 LogoVisibility="Collapsed"
                 ZoomLevel="{Binding Zoom, Mode=TwoWay}"

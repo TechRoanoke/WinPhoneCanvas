@@ -22,22 +22,20 @@
 
         <!--TitlePanel contains the name of the application and page title-->
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
-            <TextBlock x:Name="ApplicationTitle" Text="VOTER MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
+            <TextBlock x:Name="ApplicationTitle" Text="CANVASS MAP" Style="{StaticResource PhoneTextNormalStyle}"/>
             <TextBlock x:Name="PageTitle" Text="start" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
             <TextBlock Height="169" HorizontalAlignment="Left" Margin="0,6,0,0" Name="textBlock1" VerticalAlignment="Top" Width="456" FontSize="28" TextAlignment="Center" TextWrapping="Wrap" >
-            	<Run Text="Press "/>
-            	<Run Text="'data management' "/>
+            	<Run Text="Press 'get voter list' "/>
             	<LineBreak/>
             	<Run Text="to load your voter data."/>
             </TextBlock>
-            <Button Content="data management" Height="88" HorizontalAlignment="Left" Margin="0,165,0,0" x:Name="btnDataMgmt" VerticalAlignment="Top" Width="456" FontSize="28" Click="btnDataMgmt_Click" />
+            <Button Content="get voter list" Height="88" HorizontalAlignment="Left" Margin="0,165,0,0" x:Name="btnDataMgmt" VerticalAlignment="Top" Width="456" FontSize="28" Click="btnDataMgmt_Click" />
             <Button Content="map" Height="88" HorizontalAlignment="Left" Margin="0,265,0,0" Name="btnMap" VerticalAlignment="Top" Width="456" FontSize="28" IsEnabled="False" Click="btnMap_Click" />
-            <Button Content="filter voters" FontSize="28" Height="88" HorizontalAlignment="Left" Margin="0,365,0,0" Name="btnFilter" VerticalAlignment="Top" Width="456" IsEnabled="False" />
-            <Button Content="statistics" FontSize="28" Height="88" HorizontalAlignment="Left" Margin="0,465,0,0" Name="btnStats" VerticalAlignment="Top" Width="456" IsEnabled="False" />
+            <Button Content="list" FontSize="28" Height="88" HorizontalAlignment="Left" Margin="0,365,0,0" Name="btnList" VerticalAlignment="Top" Width="456" IsEnabled="False" Click="btnList_Click" />
         </Grid>
     </Grid>
 </phone:PhoneApplicationPage>

@@ -15,7 +15,6 @@ using System.Windows.Data;
 using System.ComponentModel;
 using Microsoft.Phone.Shell;
 using mapapp.data;
-using Newtonsoft.Json;
 
 
 namespace mapapp
@@ -36,47 +35,80 @@ namespace mapapp
 
         VoterFileDataContext _voterDB = null;
 
+        VoterViewModel VotersInViewList = App.VotersViewModel;
+
+        int _VoterIndexInList = 0;
+        bool _CurrentVoterModified = false;
+
         public VoterDetailsPage()
         {
             InitializeComponent();
-            DataContext = App.thisApp.SelectedHouse;
-            _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, App.thisApp._settings.DbFileName));
-            if (_voterDB.DatabaseExists())
-            {
-                try
-                {
-                    IQueryable<VoterFileEntry> voterQuery = from voter in _voterDB.AllVoters where voter.VoterID == App.thisApp.SelectedHouse.VoterID select voter;
-                    VoterFileEntry voterToUpdate = voterQuery.FirstOrDefault();
-                    if (voterToUpdate.VoterID == App.thisApp.SelectedHouse.VoterID)
-                    {
-                        DataContext = voterToUpdate;
-                        App.Log(String.Format("Setting Voter Detail page DataContext to voter {0}", voterToUpdate.FullName));
-                    }
-                    else
-                    {
-                        App.Log(String.Format("ERROR: Setting Voter Detail page DataContext to voter {0} failed.", voterToUpdate.FullName));
-                    }
-                }
-                catch (Exception ex)
-                {
-                    App.Log("Exception setting voter as DataContext" + ex.ToString());
-                }
-            }
+
             _detailsAppBar.Mode = ApplicationBarMode.Default;
             _detailsAppBar.Opacity = 1.0;
             _detailsAppBar.IsVisible = true;
             _detailsAppBar.IsMenuEnabled = false;
-            ApplicationBarIconButton buttonSave = new ApplicationBarIconButton();
-            buttonSave.IconUri = new Uri("/Images/appbar.save.rest.png", UriKind.Relative);
-            buttonSave.Text = "save";
-            buttonSave.Click += saveButton_Click;
-            _detailsAppBar.Buttons.Add(buttonSave);
+
+            ApplicationBarIconButton buttonPrevious = new ApplicationBarIconButton();
+            buttonPrevious.IconUri = new Uri("/Images/appbar.back.rest.png", UriKind.Relative);
+            buttonPrevious.Text = "previous";
+            buttonPrevious.Click += buttonPrevious_Click;
+            _detailsAppBar.Buttons.Add(buttonPrevious);
+
             ApplicationBarIconButton buttonCancel = new ApplicationBarIconButton();
             buttonCancel.IconUri = new Uri("/Images/appbar.cancel.rest.png", UriKind.Relative);
             buttonCancel.Text = "cancel";
             buttonCancel.Click += cancelButton_Click;
             _detailsAppBar.Buttons.Add(buttonCancel);
+
+            ApplicationBarIconButton buttonNext = new ApplicationBarIconButton();
+            buttonNext.IconUri = new Uri("/Images/appbar.next.rest.png", UriKind.Relative);
+            buttonNext.Text = "next";
+            buttonNext.Click += buttonNext_Click;
+            _detailsAppBar.Buttons.Add(buttonNext);
+
             ApplicationBar = _detailsAppBar;
+
+            if (VotersInViewList.VoterList.Count > 1)
+            {
+                int CurrVoterIndex = VotersInViewList.VoterList.IndexOf(App.thisApp.SelectedHouse);
+                if (CurrVoterIndex >= 0)
+                {
+                    _VoterIndexInList = CurrVoterIndex;
+                }
+            }
+            DisplayVoter(App.thisApp.SelectedHouse);
+        }
+
+        void buttonNext_Click(object sender, EventArgs e)
+        {
+            if (_CurrentVoterModified)
+                SaveVoterChanges();
+            if (_VoterIndexInList < (VotersInViewList.VoterList.Count-1))
+            {
+                _VoterIndexInList++;
+                DisplayVoter(VotersInViewList.VoterList[_VoterIndexInList]);
+                App.thisApp.SelectedHouse = VotersInViewList.VoterList[_VoterIndexInList];
+            }
+        }
+
+        void buttonPrevious_Click(object sender, EventArgs e)
+        {
+            if (_CurrentVoterModified)
+                SaveVoterChanges();
+            if (_VoterIndexInList > 0)
+            {
+                _VoterIndexInList--;
+                DisplayVoter(VotersInViewList.VoterList[_VoterIndexInList]);
+                App.thisApp.SelectedHouse = VotersInViewList.VoterList[_VoterIndexInList];
+            }
+        }
+
+        void voterToUpdate_PropertyChanging(object sender, PropertyChangingEventArgs e)
+        {
+            // Flag voter object as being "dirty", then any change to the voter being viewed needs to trigger an update
+            App.Log("voter object property changed : " + e.PropertyName);
+            _CurrentVoterModified = true;
         }
 
         private void PhoneApplicationPage_Loaded(object sender, RoutedEventArgs e)
@@ -124,7 +156,57 @@ namespace mapapp
             }
         }
 
-        private void saveButton_Click(object sender, EventArgs e)
+        public void DisplayVoter(PushpinModel _currVoter)
+        {
+            DataContext = _currVoter;
+            _CurrentVoterModified = false;
+            // TODO: Determine whether we really need to open the database at this point
+            _voterDB = new VoterFileDataContext(string.Format(VoterFileDataContext.DBConnectionString, App.thisApp._settings.DbFileName));
+            if (_voterDB.DatabaseExists())
+            {
+                try
+                {
+                    IQueryable<VoterFileEntry> voterQuery = from voter in _voterDB.AllVoters where voter.VoterID == _currVoter.VoterID select voter;
+                    VoterFileEntry voterToUpdate = voterQuery.FirstOrDefault();
+                    if (voterToUpdate.VoterID == _currVoter.VoterID)
+                    {
+                        DataContext = voterToUpdate;
+                        voterToUpdate.PropertyChanging += voterToUpdate_PropertyChanging;
+                        App.Log(String.Format("Setting Voter Detail page DataContext to voter {0}", voterToUpdate.FullName));
+                    }
+                    else
+                    {
+                        App.Log(String.Format("ERROR: Setting Voter Detail page DataContext to voter {0} failed.", voterToUpdate.FullName));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    App.Log("Exception setting voter as DataContext" + ex.ToString());
+                }
+            }
+            /*
+            */
+            ApplicationBarIconButton buttonPrevious = ApplicationBar.Buttons[0] as ApplicationBarIconButton;
+            ApplicationBarIconButton buttonNext = ApplicationBar.Buttons[2] as ApplicationBarIconButton;
+            if (VotersInViewList.VoterList.Count > 1)
+            {
+                if (_VoterIndexInList > 0)
+                    buttonPrevious.IsEnabled = true;
+                else
+                    buttonPrevious.IsEnabled = false;
+                if (_VoterIndexInList < (VotersInViewList.VoterList.Count-1))
+                    buttonNext.IsEnabled = true;
+                else
+                    buttonNext.IsEnabled = false;
+            }
+            else
+            {
+                buttonPrevious.IsEnabled = false;
+                buttonNext.IsEnabled = false;
+            }
+        }
+
+        private void SaveVoterChanges()
         {
             // If either the email or cell textbox controls had focus when save button was tapped those changes were 
             // not updated ot the view model (because focus was not lost), so we will do that now.
@@ -157,8 +239,13 @@ namespace mapapp
             // PostUpdate() will attempt to post this update (and any outstanding updates) if there is network access.
             // If the update fails, then the next change will trigger another call to PostUpdate(), which will attempt 
             // to post that update and this one.
-            PostUpdate();
+            App.thisApp.PostUpdate();
+        }
 
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            if (_CurrentVoterModified)
+                SaveVoterChanges();
             if (this.NavigationService.CanGoBack)
                 this.NavigationService.GoBack();
         }
@@ -170,58 +257,29 @@ namespace mapapp
                 this.NavigationService.GoBack();
         }
 
-        private void PostUpdate()
+        private void PhoneApplicationPage_BackKeyPress(object sender, CancelEventArgs e)
         {
-            // TODO: Provide an option to only update if WiFi is available
-            // Microsoft.Phone.Net.NetworkInformation.DeviceNetworkInformation.IsWiFiEnabled;
-            // use DeviceNetworkInformation.NetworkAvailabilityChanged Event
-            if (App.thisApp.DbHasUpdates() && Microsoft.Phone.Net.NetworkInformation.DeviceNetworkInformation.IsNetworkAvailable)
+            if (_CurrentVoterModified)
+                SaveVoterChanges();
+            _voterDB.Dispose();
+            if (this.NavigationService.CanGoBack)
+                this.NavigationService.GoBack();
+        }
+
+        private void pnlVoterStatic_DoubleTap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            if (pnlCityPrecinct.Visibility == System.Windows.Visibility.Collapsed)
             {
-                string updateContent = App.thisApp.GetUpdateString();
-
-                if (updateContent.Length > 40) // This is an arbitary stab at verifying that there is something to report
-                {
-                    try
-                    {
-                        Uri voterListUri = new Uri(App.thisApp._settings.UploadUrl);
-
-                        WebClient webClient = new WebClient();
-                        webClient.Headers[HttpRequestHeader.ContentType] = "application/text";
-                        webClient.Headers[HttpRequestHeader.ContentLength] = updateContent.Length.ToString();
-                        webClient.Headers[HttpRequestHeader.Authorization] = "bearer " + App.thisApp._settings.GetSetting<string>("authkey");
-                        webClient.UploadStringCompleted += new UploadStringCompletedEventHandler(AutoUpdatePostCompleted);
-                        App.Log("Posting update ... ");
-                        webClient.UploadStringAsync(voterListUri, "POST", updateContent);
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine(ex.ToString());
-                    }
-                }
+                pnlCityPrecinct.Visibility = System.Windows.Visibility.Visible;
+                pnlPhone.Visibility = System.Windows.Visibility.Visible;
+            }
+            else
+            {
+                pnlCityPrecinct.Visibility = System.Windows.Visibility.Collapsed;
+                pnlPhone.Visibility = System.Windows.Visibility.Collapsed;
             }
         }
 
-        void AutoUpdatePostCompleted(object sender, UploadStringCompletedEventArgs e)
-        {
-            string size = "0";
-            try
-            {
-                if (sender is WebClient)
-                {
-                    WebClient wc = sender as WebClient;
-                    UpdateResult result = JsonConvert.DeserializeObject<UpdateResult>(e.Result);
-                    if (result != null && result.VersionTag.Length > 0)
-                    {
-                        App.thisApp._settings.UpdateSetting("lastsync", DateTime.Now);
-                    }
-                }
-                App.Log(string.Format("Uploaded {0} bytes. Response is: {1}", size, e.Result));
-            }
-            catch (Exception ex)
-            {
-                App.Log("Problem logging results of upload: " + ex.ToString());
-            }
-        }    
     }
 
     public class ResultListConverter : IValueConverter
@@ -262,76 +320,6 @@ namespace mapapp
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value;
-        }
-    }
-
-    public class PartyBackgroundBrushConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            Brush _bg = new SolidColorBrush(Colors.White);
-            if ((value is int?) && (targetType == typeof(Brush)))
-            {
-                int partyNum = (int)value;
-                switch (partyNum)
-                {
-                    case 1:
-                        _bg = new SolidColorBrush(Colors.Red);
-                        break;
-                    case 2:
-                        _bg = new SolidColorBrush(Color.FromArgb(0xff, 0xff, 0x88, 0x88));
-                        break;
-                    case 3:
-                        _bg = new SolidColorBrush(Colors.Purple);
-                        break;
-                    case 4:
-                        _bg = new SolidColorBrush(Color.FromArgb(0xff, 0x88, 0x88, 0xff));
-                        break;
-                    case 5:
-                        _bg = new SolidColorBrush(Colors.Blue);
-                        break;
-                    case 6:
-                        _bg = new SolidColorBrush(Colors.Black);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return _bg;
-        }
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return 0;
-        }
-    }
-
-    public class PartyForegroundBrushConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            Brush _fg = new SolidColorBrush(Colors.Black);
-            if ((value is int?) && (targetType == typeof(Brush)))
-            {
-                int partyNum = (int)value;
-                switch (partyNum)
-                {
-                    case 1:
-                    case 2:
-                    case 3:
-                    case 4:
-                    case 5:
-                    case 6:
-                        _fg = new SolidColorBrush(Colors.White);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return _fg;
-        }
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            return 0;
         }
     }
 

@@ -329,7 +329,10 @@ namespace mapapp.data
                 string o = "";
                 int digits = 0;
                 if (_phone == null)
-                    Phone = "";
+                {
+                    _phone = "";
+                    return o;
+                }
                 string p = _phone.Trim();
 
                 foreach (char c in p)
@@ -699,6 +702,13 @@ namespace mapapp.data
         /// 7 = Couldn't find address                   (Wrong Address)
         /// 8 = Deceased                                (Deceased)
         /// 9 = Refused to identify                     (Initial Refused)
+        /// TODO: Provide these options:
+        /// Answered
+        /// Deceased
+        /// Left Message
+        /// Not Home
+        /// Initial Refused
+        /// Wrong Address
 
         /// </summary>
         private int _result;

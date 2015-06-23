@@ -74,8 +74,9 @@ namespace mapapp
             }
         }
         // public string RecordID { get; set; }
-        public int party { get { return VoterFile.Party; } set { VoterFile.Party = value; } }
-        public string precinct { get { return VoterFile.Precinct; } }
+        public int Party { get { return VoterFile.Party; } set { VoterFile.Party = value; } }
+        public string PhoneFormatted { get { return VoterFile.PhoneFormatted; } }
+        public string Precinct { get { return VoterFile.Precinct; } }
         public int PrimaryVoteHistory { get { return VoterFile.PrimaryVoteHistory; } }
         public int GeneralVoteHistory { get { return VoterFile.GeneralVoteHistory; } }
         public bool IsSupporter { get { return VoterFile.IsSupporter; } set { VoterFile.IsSupporter = value; } }

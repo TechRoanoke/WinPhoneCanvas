@@ -29,9 +29,8 @@ namespace mapapp
     
     public partial class MainPage : PhoneApplicationPage, INotifyPropertyChanged
     {
-        
-        internal const string Id = "";
-        internal const string _AuthToken = "";
+
+        internal const string Id = "INVALID_BING_MAPS_API_APP_ID";
         private readonly CredentialsProvider _credentialsProvider = new ApplicationIdCredentialsProvider(Id);
         public static readonly GeoCoordinate DefaultLocation = new GeoCoordinate(47.662929, -122.115863);
         private const double DefaultZoomLevel = 16.0;
@@ -42,7 +41,10 @@ namespace mapapp
         public event PropertyChangedEventHandler PropertyChanged;
         GeoCoordinateWatcher watcher;
         private bool firstfind = true;
+        private bool showMap = false;
+        private bool showWait = true;
         List<PushpinModel> listModels = new List<PushpinModel>();
+        // List<PrecinctPinModel> precinctList = new List<PrecinctPinModel>();
         private bool _showPushpins = false;
         private bool _showDetails = false;
         private bool _showPrecincts = true;
@@ -51,7 +53,7 @@ namespace mapapp
         private bool _showCar = false;
 
         // NOTE: This setting is used for testing during development, and should be set to true before compiling a production build
-        private bool _limitVoters = false;
+        private bool _limitVoters = true;
 
         // NOTE: These are rough estimates of the number of degrees covered in one mile
         // in the Redmond, WA area. These should be calculated based on actual latitude
@@ -131,9 +133,10 @@ namespace mapapp
             ShowCar = false;
 
             // Map.
-
+            Map.ZoomBarVisibility = System.Windows.Visibility.Visible;
             Map.MapZoom += new EventHandler<MapZoomEventArgs>(MapZoomed);
             Map.MapPan += new EventHandler<MapDragEventArgs>(MapDragged);
+            Map.MapResolved += Map_MapResolved;
             watcher = new GeoCoordinateWatcher(GeoPositionAccuracy.High); // using high accuracy
             watcher.MovementThreshold = 0.1; // use MovementThreshold to ignore noise in the signal
             
@@ -199,13 +202,19 @@ namespace mapapp
             if (App.thisApp._settings.DbStatus == DbState.Loaded)
             {
                 App.Log("DB already loaded. Starting background thread...");
+                // LoadPrecincts();
                 backThread.Start();
                 wait.Set();
             }
             else
             {
-                
+                MessageBoxResult result = MessageBox.Show("The voters are still being loaded. Stick around, they should start showing up soon.", "Loading voters...", MessageBoxButton.OK);
             }
+        }
+
+        void Map_MapResolved(object sender, EventArgs e)
+        {
+            App.Log(string.Format("Map resolved event: {0}", e.ToString()));
         }
 
         void menuitemFindCar_Click(object sender, EventArgs e)
@@ -246,6 +255,7 @@ namespace mapapp
         private GeoCoordinate FindCenterOfVoters(List<PushpinModel> list)
         {
             GeoCoordinate locCenter = new GeoCoordinate(Center.Latitude, Center.Longitude);
+            // List<PushpinModel> voters = GetLocalVoters(locCenter);
 
             double west = list.Min<PushpinModel, double>(vMin => vMin.Location.Longitude); // smallest longitude found in list (or largest absolute value)
             double east = list.Max<PushpinModel, double>(vMax => vMax.Location.Longitude); // largest longitude found in list (or smallest absolute value)
@@ -261,6 +271,8 @@ namespace mapapp
 
         void menuitemSendChanges_Click(object sender, EventArgs e)
         {
+            // App.thisApp.ReportUpdates();
+            // this.NavigationService.Navigate(new Uri("/LiveAccessPage.xaml", UriKind.Relative));
             this.NavigationService.Navigate(new Uri("/DataManagePage.xaml", UriKind.Relative));
         }
 
@@ -272,6 +284,7 @@ namespace mapapp
                 if (backThread.ThreadState == ThreadState.Unstarted)
                 {
                     App.Log("DB is finally loaded, starting background thread...");
+                    // LoadPrecincts();
                     backThread.Start();
                     ShowPushpins = true;
                 }
@@ -294,6 +307,8 @@ namespace mapapp
                 if (running == false)
                 {
                     App.Log("  Exiting background thread.");
+                    wait.Close();
+                    wait.Dispose();
                     return;
                 }
 
@@ -351,7 +366,8 @@ namespace mapapp
                     // Now filter on precinct if set
                     if (_PrecinctFilter != "")
                     {
-                        selectedVoters = from PushpinModel aVoter in selectedVoters where aVoter.precinct == _PrecinctFilter select aVoter;
+                        // _dataViewPins = from <PushpinModel> voter in _dataViewPins where voter.
+                        selectedVoters = from PushpinModel aVoter in selectedVoters where aVoter.Precinct == _PrecinctFilter select aVoter;
                         App.Log(String.Format(" {0} voters are in {1} precinct.", selectedVoters.Count(), _PrecinctFilter));
                     }
                     // Now filter on street if selected
@@ -412,14 +428,17 @@ namespace mapapp
                     }
 
                 }
+                catch (ThreadAbortException)
+                {
+                    running = false;
+                    wait.Close();
+                    wait.Dispose();
+                    return;
+                }
                 catch (Exception ex)
                 {
                     App.Log("Something went wrong in the background thread. " + ex.ToString());
                 }
-                if (App.thisApp._settings.DbStatus == DbState.Loaded)
-                {
-                }
-
                 if (wait.WaitOne(0))
                 {
                     App.Log("  Wait was not signaled, continuing (4).");
@@ -429,6 +448,10 @@ namespace mapapp
                 App.Log("  Invoking UpdatePins...");
                 Dispatcher.BeginInvoke(UpdatePins);
             }
+            running = false;
+            wait.Close();
+            wait.Dispose();
+            return;
         }
 
         public void UpdatePins()
@@ -447,9 +470,10 @@ namespace mapapp
 
         public void MapDragged(object o, MapDragEventArgs e)
         {
+            // TODO: We need to reload the listModels again
             zoomlevel = Map.ZoomLevel;
             follow = false;
-            if (App.thisApp._settings.VoterCount > 400) // This supports location-based filtering on large voter sets
+            if (App.thisApp._settings.VoterCount > 200) // This supports location-based filtering on large voter sets
             {
                 wait.Set();
             }
@@ -475,7 +499,7 @@ namespace mapapp
                     _showDetails = false;
                 }
             }
-            // When zoomed between 15 and 16 show streets and precincts
+            // When zoomed between 15 and 16 show streets and precincts (TODO: Verify we want precincts to still be shown)
             else if (zoomlevel >= 15 && zoomlevel <= 16.2)
             {
                 if (ShowPushpins) // We are zooming out - just show the streets
@@ -621,7 +645,7 @@ namespace mapapp
                 _dataView.North = voterList.Max<PushpinModel, double>(vMax => vMax.Location.Latitude); // largest latitude found in list
                 _dataView.South = voterList.Min<PushpinModel, double>(vMin => vMin.Location.Latitude); // smallest latitude found in list
 
-                _list = voterList.ToList();
+                _list = voterList.OrderBy(voter => voter.Street).ToList();
             }
             return _list;
         }
@@ -883,6 +907,7 @@ namespace mapapp
                     }
                     break;
             }
+            wait.Set();
         }
 
         void watcher_PositionChanged(object sender, GeoPositionChangedEventArgs<GeoCoordinate> e)
@@ -930,6 +955,8 @@ namespace mapapp
                 Zoom = DefaultZoomLevel;
                 zoomlevel = Zoom;
                 firstfind = false;
+                Map.Visibility = System.Windows.Visibility.Visible;
+                waitBar.Visibility = System.Windows.Visibility.Collapsed;
             }
             App.Log(string.Format("  Position changed: Zoom={0}, zoomLevel={1}, Map.TargetZoom={2}", Zoom, zoomlevel, Map.TargetZoomLevel));
 
@@ -942,8 +969,8 @@ namespace mapapp
 
         private void ListStreets(object sender, EventArgs e)
         {
-            // TODO: Update to use Streets table from DB
             App.VotersViewModel.VoterList.Clear();
+
             foreach (PushpinModel p in listModels)
             {
                 if (p.Content.Equals("Me"))
@@ -959,6 +986,13 @@ namespace mapapp
 
         private void PhoneApplicationPage_BackKeyPress(object sender, CancelEventArgs e)
         {
+            if (watcher != null)
+                watcher.Stop();
+            if (backThread != null && backThread.ThreadState != ThreadState.Stopped)
+            {
+                running = false;
+                wait.Set();
+            }
             if (this.NavigationService.CanGoBack)
                 this.NavigationService.GoBack();
         }
@@ -976,8 +1010,14 @@ namespace mapapp
                 Pushpin pinHeld = sender as Pushpin;
                 if (pinHeld.DataContext is PushpinModel)
                 {
+                    if (watcher != null)
+                        watcher.Stop();
+                    if (backThread != null && backThread.ThreadState != ThreadState.Stopped)
+                    {
+                        // TODO: Is there ay way other than the embedded waits to suspend the thread?
+                    }
                     PushpinModel pinModel = pinHeld.DataContext as PushpinModel;
-                    App.thisApp.SelectedHouse = pinModel.VoterFile;
+                    App.thisApp.SelectedHouse = pinModel;
                     this.NavigationService.Navigate(new Uri("/VoterDetailsPage.xaml", UriKind.Relative));
                 }
             }
@@ -1029,6 +1069,24 @@ namespace mapapp
                     App.Log(string.Format("{0} precinct selected", _PrecinctFilter));
                     wait.Set();
                 }
+            }
+        }
+
+        private void waitBar_DoubleTap(object sender, System.Windows.Input.GestureEventArgs e)
+        {
+            if (showWait)
+            {
+//                showWait = false;
+//                showMap = true;
+            }
+        }
+
+        private void PhoneApplicationPage_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (!firstfind)
+            {
+                if (watcher != null && watcher.Status != GeoPositionStatus.Ready)
+                    watcher.Start();
             }
         }
     }
